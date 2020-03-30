@@ -1,0 +1,2 @@
+variable transf limlower limupper limlower_repl limupper_repl sdlim npca filepca
+meancimtleft rin "==-111" "==-222" NA NA 9 0 /dataE/AWIGenGWAS/shared/ResultGWAS/Ressource/Pca_smartpca300819/awi.all.pruned.evec
