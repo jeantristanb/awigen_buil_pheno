@@ -61,29 +61,24 @@ return(x)
 \maketitle
 \tableofcontents
 \section{Description}
-Analysis of \Sexpr{Dund(Var)} :
+Analysis of \Sexpr{Dund(Var)} 
 \begin{itemize}
-\Sexpr{Dund(infovariable, "\\\\_")}
-\item File data used : \Sexpr{Dund(FileI, "\\\\_")}
+%\Sexpr{Dund(infovariable, "\\\\_")}
+\item File data used : \Sexpr{Dund(file_phenoI, "\\\\_")}
 \item missing data, and not in range
 \item Distribution by site/sex analyse
 \item covariable : significance
-\begin{itemize}
-\item age
-\item age square
-\item sex
-\item PCA : 4 pca in region and 6 pca for all individuals, each set of PCA computed for each region or all
-\begin{itemize} 
-\Sexpr{infopca}
-\end{itemize}
+%\begin{itemize} 
+%\Sexpr{infopca}
+%\end{itemize}
 \end{itemize}
 \item algoritms :
 \begin{itemize}
-\item selected individuals present in genetics after qc : \Sexpr{Dund(FamAll, "\\\\_")}
+\item selected individuals present in genetics after qc : \Sexpr{Dund(FamFile, "\\\\_")}
 \item deleted all NA or -999
 \item if need : replace -111 by limlower+ 0.1*limlower 
 \item if need : replace -222 by limupper - 0.1*limupper
-\Sexpr{filtspe}
+%\Sexpr{filtspe}
 \item SD deleted : 
 \begin{itemize}
 \item for each sites and sex, computed sd, 
@@ -100,27 +95,35 @@ Analysis of \Sexpr{Dund(Var)} :
 \end{itemize}
 \end{itemize}
 \section{Common individuals between phenotype and genotype}
+Comparaison between ID in phenotype and genotype
+deletion of individual not in fam
+we select phenotype data present in genotype data, we use \Sexpr{nrow(Data)} common individuals with genotype and phenotype for analysis.
 <<cmpgenphe,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "venn diagram of individual present in genotype (blue) and phenotype (red)",fig.pos="H", fig.width=6, fig.height=6, resize.height='6cm', resize.weight='6cm'>>=
-ListVenn<-list(Geno=unique(DataPcaAll[,1]), Pheno=unique(DataI[,VarId]))
+ListVenn<-list(Geno=unique(paste(DataFam[,1], DataFam[,2])), Pheno=unique(paste(DataI[,ListVarId[1]],DataI[,ListVarId[2]] )))
 #a<-venn.diagram(ListVenn,file=NULL,col=c("blue", "red"))
 a<-venn.diagram(ListVenn,file=NULL,fill=c("blue", "red"),alpha=c(0.5,0.5) ,direct.area=F,print.mode="raw", cat.col=c("blue", "red"))
 grid.draw(a)
-Data<-Data[Data[,VarId] %in% DataPcaAll[,1] ,]
+BaliseCommon=paste(DataI[,ListVarId[1]],DataI[,ListVarId[2]]) %in% paste(DataFam[,1], DataFam[,2])
+Data<-Data[BaliseCommon ,]
 @
-we select phenotype data present in genotype data, we use \Sexpr{nrow(Data)} common individuals with genotype and phenotype for analysis.
 
 \subsection{Sex comparison}
+Comparison of sex between genotype and phenotype
 <<Sex cmp,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "venn diagram of individual present in genotype (blue) and phenotype (red)",fig.pos="H", fig.width=6, fig.height=6, resize.height='6cm', resize.weight='6cm'>>=
-CmpSex<-merge(DataPcaAll[,c(1,5)], Data[,c(VarId,VarSex)],by=c(1))
+if(BalSex){
+CmpSex<-merge(DataFam[,c(1,5)], Data[,c(ListVarId,VarSex)],by=c(1))
 kable(table(CmpSex$V5,CmpSex$sex), caption="table sex for fam (row) and phenotype (column)", row.names=T, booktabs = T,format = "latex")  %>% kable_styling(latex_options = c("striped", "HOLD_position"))
 NewVarSex=paste(VarSex,"tmp",sep="")
 CmpSex[,NewVarSex]=NA
-CmpSex[CmpSex[,VarSex]==ValSexF,NewVarSex]<-2
-CmpSex[CmpSex[,VarSex]!=ValSexF,NewVarSex]<-1
+CmpSex[!is.na( CmpSex[,VarSex]) & as.character(CmpSex[,VarSex])==ValSexF,NewVarSex]<-2
+CmpSex[!is.na(CmpSex[,VarSex]) & as.character(CmpSex[,VarSex])!=ValSexF,NewVarSex]<-1
 IndToDel<-as.character(CmpSex[CmpSex[,"V5"]!=CmpSex[,NewVarSex],1])
-Data<-Data[!(Data[,VarId] %in% IndToDel),]
+Data<-Data[!(Data[,ListVarId[1]] %in% IndToDel),]
+cat("\n",paste(IndToDel, collapse=","),"must be deleted because not same sex between phenotype file and fam file\n")
+}else{
+cat('\nnot sex defined : not check \n')
+}
 @
-\Sexpr{paste(IndToDel, collapse=", ")} must be deleted because not same sex between phenotype file and fam file
 
 \section{Values distribution and missing data}
 \subsection{Missing data}
@@ -134,28 +137,34 @@ kable(matrix(res, nrow=1), col.names=names(res),row.names=F, booktabs = T, digit
 
 \subsection{Sweet comparison}
 <<Soweto,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "Comparison soweto sweet and no sweet for soweto",fig.pos="H", fig.width=4, fig.height=4>>=
+if(BaliseCheckSoweto){
 DataSowetoF<-Data[!is.na( Data[,Var]) & Data[,Var]>0 & Data[,VarSite]==Soweto & Data[,VarSex]==Females,]
 plot(density(DataSowetoF[DataSowetoF[,Var]>0 & DataSowetoF[,VarSweetCtr]==VarSweet,Var], na.rm=T), lwd=2, main="", xlab=Var)
 lines(density(DataSowetoF[DataSowetoF[,Var]>0 & DataSowetoF[,VarSweetCtr]!=VarSweet,Var], na.rm=T), lwd=2,col="blue")
 legend("topright", legend=c(VarSweet,paste("No",VarSweet)),col=c("black", "blue"), lty=1)
 test<-t.test(DataSowetoF[DataSowetoF[,VarSweetCtr]==VarSweet,Var], DataSowetoF[DataSowetoF[,VarSweetCtr]!=VarSweet,Var])
 kable(data.frame(stat=test$statistic, pval=test$p.value, meansweet=test$estimate[1], meanother=test$estimate[2], nsweet=length(DataSowetoF[DataSowetoF[,VarSweetCtr]==VarSweet,Var]), nother=length(DataSowetoF[DataSowetoF[,VarSweetCtr]!=VarSweet,Var])), row.names=F, booktabs = T, caption="Result for test comparison between sweet and no sweet for soweto females", format = "latex")  %>% kable_styling(latex_options = c("striped", "HOLD_position"))
+}
+#if(DeletedSweet==T)Data[Data[,VarSweetCtr]==VarSweet,Var]<-NA
 @
 
 \subsection{Missing values after filtering}
 we transform variable with :
 \begin{itemize}
-\item  NA or -999 : NA
-\item -111 values replaced by \Sexpr{M111 - 0.1*M111} with -111 was values below than \Sexpr{M111}
-\item -222 values replaced by \Sexpr{M222 + 0.1*M222} with -222 was value higher than \Sexpr{M222}
-\Sexpr{filtspe}
-\item do you need to delete sweet panel in soweto: \Sexpr{DeletedSweet}
+\item values \Sexpr{NaValue} replace by NA value
+\item limlower values replaced with expression \Sexpr{limlowerfor} by \Sexpr{limlowerrep}
+\item limupper values replaced with expression \Sexpr{limupperfor} by \Sexpr{limupperrep}
+%\Sexpr{filtspe}
+%\item do you need to delete sweet panel in soweto: \Sexpr{DeletedSweet}
 \end{itemize}
 <<NaValue,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "distribution of value missing after filtering",fig.pos="H", fig.width=6, fig.height=4>>=
-if(DeletedSweet==T)Data[Data[,VarSweetCtr]==VarSweet,Var]<-NA
-if(!is.na(M111))Data[!is.na(Data[,Var]) & Data[,Var]==-111,Var]<-M111 - 0.1*M111
-if(!is.na(M222))Data[!is.na(Data[,Var]) & Data[,Var]==-222,Var]<-M222 + 0.1*M222
-Data[is.na(Data[,Var]) |Data[,Var] %in% c(-555, -111, -999),Var]<-NA
+Data[!is.na(Data[,Var]) & as.character(Data[,Var])==as.character(NaValue),Var]<-NA
+Data[!is.na(Data[,Var]),Var]<-transformvar(Data[!is.na(Data[,Var]),Var],limlowerfor, limlowerrep)
+Data[!is.na(Data[,Var]),Var]<-transformvar(Data[!is.na(Data[,Var]),Var],limupperfor, limupperrep)
+#if(!is.na(M111))Data[!is.na(Data[,Var]) & Data[,Var]==-111,Var]<-M111 - 0.1*M111
+#if(!is.na(M222))Data[!is.na(Data[,Var]) & Data[,Var]==-222,Var]<-M222 + 0.1*M222
+
+#Data[is.na(Data[,Var]) |Data[,Var] %in% c(-555, -111, -999),Var]<-NA
 Data[,Var]<-fctspe(Data[,Var], Data)
 res<-c(GetPerc(is.na(Data[,Var])),GetPerc(!is.na(Data[,Var])))
 names(res)<-c("NA","No Na")
@@ -166,10 +175,17 @@ kable(table(Data[is.na(Data[,Var]),VarSex],Data[is.na(Data[,Var]),VarSite]), row
 \subsection{Variables distribution by sex}
 <<densitysex,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "plot density betwen sex and males",fig.pos="H", fig.width=5, fig.height=4>>=
 plot(density(Data[,Var] ,na.rm=T), lwd=2, main="Comparison between sex")
-lines(density(Data[Data[,VarSex]==0,Var], na.rm=T),col="red",lwd=2)
-lines(density(Data[Data[,VarSex]==1,Var], na.rm=T),col="green",lwd=2)
+if(BalSex){
+lines(density(Data[!is.na(Data[,VarSex]) & Data[,VarSex]==ValSexF,Var], na.rm=T),col="red",lwd=2)
+lines(density(Data[!is.na(Data[,VarSex]) & Data[,VarSex]!=ValSexF,Var], na.rm=T),col="green",lwd=2)
 legend("topright", legend=c("All","F","M"), col=c("black","red","green"), lty=1,bty='n')
-ResSex<-cbind(Type=c("All","F","M"),as.data.frame(rbind(resumestat(Data[,Var]),resumestat(Data[Data[,VarSex]==0,Var]),resumestat(Data[Data[,VarSex]==1,Var]))))
+}
+legend("topright", legend=c("All","F","M"), col=c("black","red","green"), lty=1,bty='n')
+if(BalSex){
+ResSex<-cbind(Type=c("All","F","M","NA"),as.data.frame(rbind(resumestat(Data[,Var]),resumestat(Data[!is.na(Data[,VarSex]) & Data[,VarSex]==ValSexF,Var]),resumestat(Data[!is.na(Data[,VarSex]) & Data[,VarSex]==1,Var]), resumestat(Data[is.na(Data[,VarSex]),Var]))))
+}else{
+ResSex<-cbind('All',as.data.frame(matrix(resumestat(Data[,Var]), nrow=1)))
+}
 kable(ResSex, row.names=F, booktabs = T, digits=3, caption="",format = "latex")  %>% kable_styling(latex_options = c("striped", "HOLD_position"))
 @
 \subsection{Variables distribution by sites}
@@ -198,10 +214,11 @@ we used \Sexpr{nrow(Data[!is.na(Data[,Var]),])} values no missing to continue an
 pca plot in function of variable : \Sexpr{Dund(Var,"\\\\_")}, point size depend of values
 <<pca,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "",fig.pos="H", fig.width=17, fig.height=17, resize.height='17cm', resize.weight='17cm'>>=
 Cmt<-1
+
 for(Region in  names(listepca)){
 cat("\\subsection{",Region,"}\n")
-DataPcatrait<-PlotPca2(Data, Region, listepca, listenpca, Var,VarSite, VarSex,VarId,InfoSite, InfoSex)
-CorWithPca<-apply(DataPcatrait[,paste("Axis_",1:10,sep="")],2, function(x){
+DataPcatrait<-PlotPca2(Data, Region, listepca, listenpca, Var,VarSite, VarSex,ListVarId[1],InfoSite, InfoSex)
+CorWithPca<-apply(DataPcatrait[,paste("Axis_",1:min(ncol(DataPcatrait),10),sep="")],2, function(x){
 bal<-!is.na(x) & !is.na(DataPcatrait[,Var])
 tmp<-cor.test(x[bal],DataPcatrait[bal,Var])
 paste(as.characterspe(tmp$statistic,2),GetSig(tmp$p.value),sep="")
@@ -260,30 +277,34 @@ SdInfoAll$Ks_Pval<-as.characterspe(SdInfoAll$Ks_Pval,2)
 #cat("\n\\clearpage\n\\paragraph{Resume values}\n\n")
 print(kable(SdInfoAll, row.names=F, col.names=gsub("_", " ", names(SdInfoAll)), booktabs = T, digits=1, caption="value count for x * sd by sex and site", format = "latex")  %>% kable_styling(latex_options = c("striped", "HOLD_position")))
 @
-\subsection{Deletion of values higher and lower x * SD}
+\subsection{Deletion of values higher and lower x * SD or upper and lower limit}
 <<sddel,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "density by sex and sites",fig.pos="H", fig.width=12, fig.height=6, resize.height='7cm', resize.weight='14cm'>>=
 NewVarSd<-paste(Var,"_delsd", sep="")
 DataTr<-Data[!is.na(Data[,Var]) ,]
 DataTr[,NewVarSd]<-DataTr[,Var]
-if(is.na(NbSdLim)){
-cat("\nNo number value x * sd define for limits (x), stop script\n")
-knit_exit()
-}
 @
 <<sddistsexsite2,  comment=NA, results = 'asis', echo=FALSE, fig.cap = "density by sex and sites",fig.pos="H", fig.width=12, fig.height=6, resize.height='7cm', resize.weight='14cm'>>=
 cat("\nWe use : ", NbSdLim, "* sd for lim for each sex and site\n")
 Cmt<-1
 for(Site in as.character(unique(Data[,VarSite]))){
 for(Sex in unique(Data[Data[,VarSite]==Site,VarSex])){
+DataTr[,NewVarSd]<-Data[,Var]
 Balise<-!is.na(DataTr[,NewVarSd]) &DataTr[,VarSite]==Site & DataTr[,VarSex]==Sex
 Val<-DataTr[Balise,NewVarSd]
 MeanSexSit=mean(Val,na.rm=T)
 SdSexSit=sd(Val,na.rm=T)
+if(!is.na(NbSdLim)){
 ValSup<-MeanSexSit+NbSdLim*SdSexSit
 ValInf<-MeanSexSit-NbSdLim*SdSexSit
 NbInf<-length(Val[Val<ValInf])
 NbSup<-length(Val[Val>ValSup])
 DataTr[Balise & (DataTr[,NewVarSd]>ValSup | DataTr[,NewVarSd]<ValInf),NewVarSd]<-NA
+}else{
+ValSup<-Nlistcov2A
+ValInf<-NA
+NbInf<-NA
+NbSup<-0
+}
 resum<-data.frame(Site=Site, Sex=Sex, Mean=MeanSexSit, Sd=SdSexSit, InfLim=ValInf,SupLim=ValSup,NbInf=NbInf,NbSup=NbSup, NInit=length(DataTr[Balise ,NewVarSd]),NFin=length(DataTr[Balise & !is.na(DataTr[,NewVarSd]),NewVarSd]))
 if(Cmt==1)ResumeDel<-resum
 else ResumeDel<-rbind(ResumeDel ,resum)
@@ -303,21 +324,24 @@ CmtVar<-1
 for(Cov in names(Listlistcov)){
 ListCovI<-Listlistcov[[Cov]]
 listcov2<-unique(unlist(strsplit(ListCovI, split="[:*]")))
+cat(ListCovI)
+cat(listcov2)
 cat("\n\\subsection{Covariable :",paste(Dund(ListCovI, "\\\\_"),collapse=","),"}\n\n")
-DataAllVar<-DataTr[,c(VarId,VarId, Var,VarSite,VarSex, listcov2)]
+DataAllVar<-DataTr[,c(ListVarId, Var,VarSite,VarSex, listcov2)]
 for(Region in names(listepca)){
 npca<-listenpca[[Region]]
 NewVarRes=paste(Var,NbSdLim,Cov,Region,npca,sep="_")
 cat("\n\\subsubsection{",Region,"}\n", "we use residual of covariables and pca axis computed on site to define a new variable with glm\n")
 DataPca<-read.table(listepca[[Region]])
 names(DataPca)<-c("FID","IID",paste("Axis_",1:(ncol(DataPca)-2),sep=""))
-DataTrSit<-na.omit(DataTr[,unique(c(VarId,Var,VarSite,VarSex, NewVarSd, listcov2))])
-DataAndPca<-merge(DataTrSit,DataPca,by.x=VarId,by.y="FID")
+DataTrSit<-na.omit(DataTr[,unique(c(ListVarId,Var,VarSite,VarSex, NewVarSd, listcov2))])
+DataAndPca<-merge(DataTrSit,DataPca,by.x=ListVarId,by.y=c("FID","IID"))
 print(kable(t(apply(DataAndPca[!is.na(DataAndPca[,NewVarSd]),c(NewVarSd,listcov2)],2,resumestat)), caption=c("distribution for variables and covariable"), row.names=T, booktabs = T, format = "latex")  %>% kable_styling(latex_options = c("striped", "HOLD_position")))
 ## merge two data set
 DataAndPca[,VarSite]<-as.character(DataAndPca[,VarSite])
-rownames(DataAndPca)<-DataAndPca[,VarId]
-nbbycov<-apply(DataAndPca[,listcov2],2,function(x)length(unique(x)))
+rownames(DataAndPca)<-DataAndPca[,ListVarId[1]]
+if(length(listcov2)>1)nbbycov<-apply(DataAndPca[,listcov2],2,function(x)length(unique(x)))
+else if(length(listcov2)==1) nbbycov<-length(unique(DataAndPca[,listcov2]))
 Cmt<-1
 cat('\nvariables deleted :\n')
 cat('\n\\begin{itemize}\n')
@@ -340,8 +364,8 @@ else ListCov<-ListCov
 
 resglm<-glm(as.formula(paste(NewVarSd,"~",paste(ListCov,collapse="+"),sep="")), data=DataAndPca)
 print(kable(summary(resglm)$coefficients, row.names=T, booktabs = T, caption=paste("lm of ",Dund(Var)," with cov ", Dund(paste(ListCov, collapse=",")),", ", Region, "and", npca," Pca" ),format = "latex")  %>% kable_styling(latex_options = c("striped", "HOLD_position")))
-ResultRes<-data.frame(fid=names(resglm$residuals),res=resglm$residuals)
-names(ResultRes)<-c(VarId,NewVarRes)
+ResultRes<-data.frame(fid=names(resglm$residuals),iid=names(resglm$residuals),res=resglm$residuals)
+names(ResultRes)<-c(ListVarId,NewVarRes)
 DataTrSitNew<-merge(DataTrSit,ResultRes)
 DataTrSitNew2<-merge(merge(DataTrSitNew,InfoSite,all.x=T),InfoSex,all.x=T)
 #par(mfrow=c(2,2))
@@ -366,7 +390,7 @@ plotBySiteSex(DataTrSitNew2, NewVarResTr, VarSite, VarSex, InfoSite,InfoSex,xlab
 plot(DataTrSitNew2[,Var],DataTrSitNew2[,NewVarResTr], xlab=Var, ylab=NewVarResTr, main="Comparison of residuals transformed and intial values",col=alpha(DataTrSitNew2$ColSite,0.4), pch=DataTrSitNew2$ColSex+15)
 DataToAppend<-DataToAppend[,!(names(DataToAppend) %in% c(NewVarResTr))]
 posname<-names(DataToAppend)
-DataToAppend<-merge(DataToAppend,DataTrSitNew2[,c(VarId,NewVarResTr)],by=VarId,all=T)
+DataToAppend<-merge(DataToAppend,DataTrSitNew2[,c(ListVarId,NewVarResTr)],by=ListVarId,all=T)
 DataToAppend<-DataToAppend[,c(posname,NewVarResTr)]
 Log<-data.frame(Var=NewVarResTr,VarI=Var,Cov=paste(ListCov,collapse=","),NbSd=NbSdLim,Region=Region,Trans=namtrshort, Npca=npca)
 if(CmtVar==1)DataTmpLog<-Log

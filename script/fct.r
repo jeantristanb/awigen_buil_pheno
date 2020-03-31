@@ -1,12 +1,30 @@
 library(scales)
+getinfocov<-function(paraminfo){
+if(is.na(paraminfo$cov))return(list(NoCov=c()))
+names(paraminfo)<-tolower(names(paraminfo))
+listcov<-strsplit(strsplit(as.character(paraminfo$cov),split=';')[[1]], split=',')
+lisnamecov<-strsplit(as.character(paraminfo$headcov),split=';')[[1]]
+if(length(listcov)!=length(lisnamecov)){
+cat(liscov,'\n')
+cat(lisnamecov,'\n')
+cat('\nprobleme in cov\n')
+q('no',2)
+}
+names(listcov)<-lisnamecov
+return(listcov)
+}
+
 getinfopca<-function(paraminfo){
 if(is.na(paraminfo$filepca))return(list('pca'=list(), 'npca'=list()))
-names(paraminfo)<-tolower(paraminfo)
-lispca<-strsplit(paraminfo$filepca,split=';')[[1]]
-lisnamepca<-strsplit(paraminfo$headpca,split=';')[[1]]
+names(paraminfo)<-tolower(names(paraminfo))
+lispca<-strsplit(as.character(paraminfo$filepca),split=';')[[1]]
+lisnamepca<-strsplit(as.character(paraminfo$headpca),split=';')[[1]]
 lisnpca<-strsplit(paraminfo$npca,split=';')[[1]]
-if((length(lisnpca)!=length(lispca))!=length(lisnamepca)){
-cat('probleme in pca')
+if((length(lisnpca)!=length(lispca)) | length(lispca)!=length(lisnamepca)){
+cat(lispca,'\n')
+cat(lisnpc,'\n')
+cat(lisnamepca,'\n')
+cat('\nprobleme in pca\n')
 q('no',2)
 }
 fpca=list()
@@ -18,21 +36,28 @@ q('no',2)
 }
 fpca[[lisnamepca[Cmt]]]=lispca[Cmt]
 npca[[lisnamepca[Cmt]]]=as.integer(lisnpca[Cmt])
-
 }
+return(list('pca'=fpca, 'npca'=npca))
 }
-
+GetInfoTrans<-function(x){
+if(x=='log')return('logistic')
+if(x=='log10')return('logistic 10')
+if(x=='rin')return('Rank inverse normal')
+if(x=='notr')return('no tranformation')
+x
+}
+rin<-function(a)qnorm((rank(a)-0.5)/(length(a)-2*0.5+1))
+notr<-function(x)return(x)
 dotrans<-function(x, tr){
-cat('\ntransformation not done yet\n')
-q('no',2)
+eval(tr)(x)
 }
 
-transform_allvar<-function(Data, param){
+transform_allvar<-function(Data, tr_var){
 #newvariable variable transf changein changeout LimLower LimUpper
 #iur_albumin_qc2 ur_albumin_qc NA "==-111";"==-222" 3,401 NA NA
- names(param)<-tolower(names(param))
- for(Cmt in 1:nrow(param)){
-   infoparam<-param[Cmt,]
+ names(tr_var)<-tolower(names(tr_var))
+ for(Cmt in 1:nrow(tr_var)){
+   infoparam<-tr_var[Cmt,]
    newvar<-Data[,infoparam$variable]
    if(!is.na(infoparam$changein)){
     listinstchange<-strsplit(infoparam$changein,split=';')[[1]]
@@ -202,7 +227,6 @@ return(DataAndPca)
 
 
 
-RankNormTr<-function(a)qnorm((rank(a)-0.5)/(length(a)-2*0.5+1))
 
 GetLinearisation<-function(Site, listWithPca){
 valueI<-function(x)x

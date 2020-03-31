@@ -5,19 +5,27 @@ library('kableExtra')
 library(VennDiagram)
 
 dirscript=dirname(commandArgs()[4])
-source(paste(strsplit(dirscript,split="=")[[1]][2],"script/fct.r",sep='/'))
+dirscript=strsplit(dirscript,split="=")[[1]][2]
+source(paste(dirscript,"script/fct.r",sep='/'))
+FileRnw=paste(dirscript,"script/TemplateAnalyse.Rnw",sep='/')
 
 option_list = list(
   make_option("--pheno_file", type="character", default=NULL, 
               help="initial file of phenotype", metavar="character"),
   make_option("--sep", type="character", default=NULL, 
               help="separator for pheno file", metavar="character"),
+  make_option("--val_sex", type="character", default="1", 
+              help="separator for pheno file", metavar="character"),
   make_option("--head_id", type="character", default='FID,IID',
               help="head fid", metavar="character"),
+  make_option("--head_sex", type="character", 
+              help="head sex", metavar="character"),
+  make_option("--head_site", type="character", 
+              help="head sex", metavar="character"),
   make_option("--params", type="character", default=NULL, 
               help="separator for pheno file", metavar="character"),
   make_option("--tr_var", type="character", default=NULL, 
-              help="separator for pheno file", metavar="character"),
+              help="file for tranformation", metavar="character"),
   make_option("--pheno", type="character", default=NULL, 
               help="initial file of phenotype", metavar="character"),
   make_option("--var", type="character", default=NULL, 
@@ -56,7 +64,7 @@ cat('\n','not found sep', args[['sep']],'\n')
 q('no',2)
 }
 if(!is.null(args[['params']])){
-data_param=read.table(args[['params']] ,header=T)
+data_param=read.table(args[['params']] ,header=T, stringsAsFactors=F)
 }else{
 Var=args[['var']]
 q('no', 2)
@@ -69,7 +77,7 @@ dir.create(dir_out)
 DirOutF=paste(dir_out,"/report_pdf",sep="")
 if(!dir.exists(DirOutF))dir.create(DirOutF)
 
-fileouput=paste(dir_out,"/", args[['output']],sep="")
+fileouput=paste(getwd(),'/',dir_out,"/", args[['output']],sep="")
 DataI<-read.csv(file_phenoI, sep=sep)
 
 ## must be 2
@@ -81,20 +89,75 @@ q('no',2)
 names(DataI)[fidiid[1]==names(DataI)]<-'FID'
 names(DataI)[fidiid[2]==names(DataI)]<-'IID'
 if(!is.null(args[['tr_var']])){
+if(!file.exists(args[['tr_var']])){
+cat('\nFile tr_var:', args[['tr_var']], 'not found \nexit\n')
+q('no',2)
+}
 cat('\ntransformation of variables\n')
-tr_var=read.table(args[['tr_var']],header=T, stringsAsFactors=F,sep=' ')
+tr_var<-read.table(args[['tr_var']],header=T, stringsAsFactors=F,sep=' ')
 DataI<-transform_allvar(DataI, tr_var)
 }
+ListVarId<-c('FID','IID')
 
 DataFam<-read.table(args[['fam_file']])
+FamFile=args[['fam_file']]
+if(is.null(args[['head_sex']])){
+BaliseSex=BalSex=F
+VarSex='SexNull'
+DataI[,VarSex]='all'
+}else{
+BaliseSex=T
+}
+if(is.null(args[['head_site']])){
+VarSite='SiteTmp'
+DataI[,VarSite]='All'
+}else{
+VarSite=args[['head_site']]
+}
+if(!(VarSite %in% names(DataI))){
+cat('\n not found header for site', VarSite, '\n exit\n')
+q('no', 2)
+}
+BaliseCheckSoweto=F
+ValSexF=args[['val_sex']]
+
+ListlistcovAll<-unlist(strsplit(unlist(strsplit(data_param[!is.na(data_param[,'cov']),'cov'],split=",")),split=','))
+cat('begin change variable')
+fileouputlog<-paste(fileouput,".log",sep="")
+if(!file.exists(fileouput)){
+write.table(DataI[,c(ListVarId, unique(c(VarSite,VarSex, unlist(ListlistcovAll))))], file=fileouput, quote=F, sep="\t",row.names=F, col.names=T)
+writeLines("Var\tVarI\tCov\tNbSd\tRegion\tTrans\tNpca",con=fileouputlog)
+}
+
 for(CmtVar in 1:nrow(data_param)){
 ## pca
-tmp<-getinfopca(DataFam[CmtVar,])
+tmp<-getinfopca(data_param[CmtVar,])
 listepca=tmp[['pca']]
 listenpca=tmp[['npca']]
 ## 
-UpperLimit=
-
+#UpperLimit=
+#fcntr<-function(x)x
+#namtr<-"No transformation"
+#namtrshort<-"notr"
+if(is.na(data_param[CmtVar,'transf']))transf='notr'
+else transf=data_param[CmtVar,'transf']
+fcntr<-get(transf)
+test<-fcntr(1)
+namtrshort=transf
+namtr<-GetInfoTrans(transf)
+Var=as.character(data_param[CmtVar,'variable'])
+Data<-DataI
+limlowerfor<-data_param[CmtVar,"limlower"]
+limlowerrep<-data_param[CmtVar,"limlower_repl"]
+limupperfor<-data_param[CmtVar,"limupper"]
+limupperrep<-data_param[CmtVar,"limupper_repl"]
+NbSdLim=data_param[CmtVar,'sdlim']
+Listlistcov<-getinfocov(data_param[CmtVar,])
+print(Listlistcov)
+print(listepca)
+NaValue=data_param[CmtVar,'navalue']
+if(!is.na(data_param[CmtVar,'formula']))Data[,Var]=formulastr(Data, data_param[CmtVar,'formula'])
+knit(FileRnw, output=paste(DirOutF,"/",Var,".tex",sep=""))
 }
 ##
 
@@ -136,7 +199,6 @@ UpperLimit=
 #infovariable=""
 
 #listenpca=list(All=6, East=4, West=4, South=4)
-#DataPcaAll<-read.table(FamAll)
 
 #Var<-"friedewald_qc"
 #DeletedSweet=F
@@ -188,11 +250,7 @@ UpperLimit=
 #
 #
 #
-fileouputlog<-paste(fileouput,".log",sep="")
 #if(!file.exists(fileouput)){
 #write.table(Data[,c(names(Data)[c(1,2)], unique(c(VarSite,VarSex, unlist(Listlistcov))))], file=fileouput, quote=F, sep="\t",row.names=F, col.names=T)
 #writeLines("Var\tVarI\tCov\tNbSd\tRegion\tTrans\tNpca",con=fileouputlog)
 #}
-##FileRnw=paste(DirOut,"/report/",Var, ".Rnw",sep="")
-#FileRnw="/dataE/AWIGenGWAS/shared/ResultGWAS/Ressource/pheno/script/TemplateAnalyse.Rnw"
-#knit(FileRnw, output=paste(DirOutF,"/",Var,".tex",sep=""))
