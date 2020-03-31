@@ -15,7 +15,7 @@ option_list = list(
   make_option("--sep", type="character", default=NULL, 
               help="separator for pheno file", metavar="character"),
   make_option("--val_sex", type="character", default="1", 
-              help="separator for pheno file", metavar="character"),
+              help="valeur for females in sex", metavar="character"),
   make_option("--head_id", type="character", default='FID,IID',
               help="head fid", metavar="character"),
   make_option("--head_sex", type="character", 
@@ -26,12 +26,6 @@ option_list = list(
               help="separator for pheno file", metavar="character"),
   make_option("--tr_var", type="character", default=NULL, 
               help="file for tranformation", metavar="character"),
-  make_option("--pheno", type="character", default=NULL, 
-              help="initial file of phenotype", metavar="character"),
-  make_option("--var", type="character", default=NULL, 
-              help="initial file of phenotype", metavar="character"),
-  make_option("--tr", type="character", default=NULL, 
-              help="tranformation need", metavar="character"),
   make_option("--fam_file", type="character", default=NULL, 
               help="file id to keep", metavar="character"),
   make_option("--dir_out", type="character", default="./", 
@@ -121,7 +115,7 @@ q('no', 2)
 BaliseCheckSoweto=F
 ValSexF=args[['val_sex']]
 
-ListlistcovAll<-unlist(strsplit(unlist(strsplit(data_param[!is.na(data_param[,'cov']),'cov'],split=",")),split=','))
+ListlistcovAll<-unique(unlist(strsplit(unlist(strsplit(unlist(strsplit(data_param[!is.na(data_param[,'cov']),'cov'],split=",")),split=',')),split="[:*]")))
 cat('begin change variable')
 fileouputlog<-paste(fileouput,".log",sep="")
 if(!file.exists(fileouput)){
@@ -159,9 +153,6 @@ NaValue=data_param[CmtVar,'navalue']
 if(!is.na(data_param[CmtVar,'formula']))Data[,Var]=formulastr(Data, data_param[CmtVar,'formula'])
 knit(FileRnw, output=paste(DirOutF,"/",Var,".tex",sep=""))
 }
-##
-
-#DataI$site_qc<-c("Agincourt", "Dikgale", "Nairobi","Nanoro","Navrongo", "SOWETO")[DataI$site]
 #DataI$sex_qc<-DataI$sex
 #DataI$sex<-NA
 #DataI$sex[DataI$sex_qc=="Women"]<-0

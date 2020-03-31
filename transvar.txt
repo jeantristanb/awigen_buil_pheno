@@ -1,4 +1,4 @@
 newvariable variable transf changein changeout LimLower LimUpper
-ur_albumin_qc2 ur_albumin_qc NA "==-111";"==-222" 3,401 NA NA
-ur_creatinine_qc2 ur_creatinine_qc NA "==-111";"==-222" NA,NA NA NA
+ur_albumin_qc2 ur_albumin_qc NA "==-111";"==-222";"==-999" 3;401;NA NA NA
+ur_creatinine_qc2 ur_creatinine_qc NA "==-111";"==-222";"==-999" NA;NA;NA NA NA
 diabetes_status_c_qc diabetes_status_c_qc NA "<0" NA NA NA

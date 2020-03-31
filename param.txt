@@ -1,2 +1,2 @@
-variable transf limlower limupper limlower_repl limupper_repl sdlim npca filepca
-meancimtleft rin "==-111" "==-222" NA NA 9 0 /dataE/AWIGenGWAS/shared/ResultGWAS/Ressource/Pca_smartpca300819/awi.all.pruned.evec
+variable formula transf limlower limupper limlower_repl limupper_repl navalue sdlim npca headcov cov filepca headpca
+new_uarc ur_albumin_qc2/ur_creatinine_qc2 rin NA NA NA NA -999 100 9;8 sex;agesex sex;age,sex /dataE/AWIGenGWAS/shared/ResultGWAS/Ressource/Pca_smartpca300819/awi.all.pruned.evec;/dataE/AWIGenGWAS/shared/ResultGWAS/Ressource/Pca_smartpca300819/awi_Agincourt.ld.with_outl.evec All;Agincourt
